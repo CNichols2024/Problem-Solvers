@@ -8,9 +8,11 @@ $MaxClockSpeed = ((Get-CimInstance CIM_Processor).MaxClockSpeed) / 1000
 $ProcessorPerformance = (Get-Counter -Counter "\Processor Information(_Total)\% Processor Performance").CounterSamples.CookedValue
 $actualCPUSpeed = ($MaxClockSpeed * ($ProcessorPerformance / 100)) <#obtaining current cpu speed by multiplying the max clock speed by 100th the performance#>
 $trimmedActualCPUSpeed = $actualCPUSpeed.ToString().Substring(0, 4) <#trimming the speed to the first 2 digits after decimal#>
+
 <#Getting Domain connection Status and name#>
 $domainCheck = (Get-CimInstance Win32_ComputerSystem).PartOfDomain
 $domainName = (Get-CimInstance Win32_ComputerSystem).Domain
+
 <#Getting battery capacity details. Try/catch to account for desktops/VM#>
 try {
     $designedCapacity = (Get-WmiObject -Class "BatteryStaticData" -Namespace "ROOT\WMI").DesignedCapacity
@@ -27,6 +29,13 @@ try {
 } finally {
     write-host("Battery information retrieval attempted. Check variables for results")
 }
+
+<#starting hardware check section#>
+$diabledDivices = Get-PnpDevice| Where-Object { $_.Status -eq "Disabled" } | Select-Object -Property FriendlyName, Status, Class | Select-Object FriendlyName, class, status, InstanceId
+write-host("Disabled Devices: $diabledDivices")
+$allBadDevices = Get-PnpDevice| Where-Object { $_.Status -ne "OK" -or $_.Status -ne "Disabled" } | Select-Object -Property FriendlyName, Status, Class | Select-Object FriendlyName, class, status, InstanceId
+write-host("$allBadDevices") <#outputting bad devices to console for testing. Will also be included in the html report#>
+
 <#building html report#>
 $htmlContent = @"
 <!DOCTYPE html>
@@ -47,6 +56,8 @@ $htmlContent = @"
             <li>Actual Capacity: $actualCapacity</li>
             <li>Battery Capacity Percentage: $capacityPercentage%</li>
         </ul> 
+        <p>Disabled Device List: $diabledDivices </p>
+        <p>Bad Device List: $allBadDevices </p>
     </div>
 <footer style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px; background-color: #3cb4e5;">
     <p>Report generated on $dateTime</p>
