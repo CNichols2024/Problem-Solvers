@@ -6,3 +6,8 @@ domain\user.name
 cpu base and actual speed.
 Last boot time
 and more to come
+
+
+/commonFixes/Network-Issues
+  This folder will be specifically designed to test network issues and apply common fixes without having to manually enter in commands
+  
